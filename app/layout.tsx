@@ -9,7 +9,7 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Dictation",
+  title: "Dysctation",
   description: "Quick voice-to-text dictation, stored locally on your device.",
 };
 

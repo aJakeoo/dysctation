@@ -45,7 +45,7 @@ export function MicButton({
       className={`relative flex h-28 w-28 select-none items-center justify-center rounded-full shadow-lg transition-all duration-300 ease-out focus:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft disabled:opacity-50 sm:h-32 sm:w-32 ${
         active
           ? "scale-105 bg-muted-light grayscale shadow-md"
-          : "bg-accent hover:brightness-105 active:scale-95"
+          : "bg-mic hover:brightness-105 active:scale-95"
       }`}
     >
       {active && (

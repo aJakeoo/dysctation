@@ -9,6 +9,7 @@
   --muted-light: #d8d3cc;
   --card: #fbfaf8;
   --border: #eae5de;
+  --mic: #4f7fc7;
 }
 
 @theme inline {
@@ -20,6 +21,7 @@
   --color-muted-light: var(--muted-light);
   --color-card: var(--card);
   --color-border: var(--border);
+  --color-mic: var(--mic);
   --font-sans: var(--font-nunito);
 }
 

@@ -92,7 +92,7 @@ export default function Home() {
     <div className="flex flex-1 flex-col items-center px-6">
       <main className="flex w-full max-w-md flex-1 flex-col items-center pt-16 sm:pt-24">
         <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
-          Dictation
+          Dysctation
         </h1>
         <p className="mt-2 text-sm text-muted">
           {holdMode
