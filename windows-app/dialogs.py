@@ -10,6 +10,7 @@ from typing import Callable
 
 import dpi
 from env_store import write_env_value
+from icon import set_window_icon
 from settings import save_settings
 
 
@@ -32,6 +33,7 @@ def open_pause_sensitivity_dialog(parent: tk.Tk, settings_data: dict) -> tk.Topl
     win.title("Pause Sensitivity")
     win.resizable(False, False)
     win.attributes("-topmost", True)
+    set_window_icon(win)
 
     width, height = px(340), px(190)
     _center(win, width, height)
@@ -101,6 +103,7 @@ def open_api_key_dialog(
     win.title("Change API Key")
     win.resizable(False, False)
     win.attributes("-topmost", True)
+    set_window_icon(win)
 
     width, height = px(380), px(180)
     _center(win, width, height)

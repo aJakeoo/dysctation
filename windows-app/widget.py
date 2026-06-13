@@ -10,7 +10,8 @@ from PIL import ImageTk
 
 import dpi
 from dialogs import open_api_key_dialog, open_pause_sensitivity_dialog
-from icon import create_mic_glyph
+from icon import create_mic_glyph, set_window_icon
+from instructions import open_instructions_window
 
 dpi.enable()
 _SCALE = dpi.scale()
@@ -62,6 +63,7 @@ class StatusWidget:
         self.root.attributes("-alpha", 0.92)
         self.root.attributes("-transparentcolor", BG_COLOR)
         self.root.config(bg=BG_COLOR)
+        set_window_icon(self.root)
 
         screen_w = self.root.winfo_screenwidth()
         screen_h = self.root.winfo_screenheight()
@@ -172,6 +174,8 @@ class StatusWidget:
                 win = open_api_key_dialog(
                     self.root, self.on_api_key_change or (lambda _key: None)
                 )
+            elif request == "instructions":
+                win = open_instructions_window(self.root)
             else:
                 continue
 

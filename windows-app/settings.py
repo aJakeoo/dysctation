@@ -7,6 +7,7 @@ from paths import resource_path
 
 DEFAULTS = {
     "silence_duration": 1.5,
+    "onboarding_complete": False,
 }
 
 

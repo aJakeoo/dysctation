@@ -1,6 +1,7 @@
 .env
 !.env.example
 settings.json
+icon.ico
 __pycache__/
 *.pyc
 .venv/

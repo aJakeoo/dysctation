@@ -5,6 +5,7 @@ import webbrowser
 
 import dpi
 from env_store import write_env_value
+from icon import set_window_icon
 
 GROQ_SIGNUP_URL = "https://console.groq.com"
 
@@ -27,6 +28,7 @@ def run_first_run_setup() -> str:
     root.title("Dysctation Setup")
     root.resizable(False, False)
     root.attributes("-topmost", True)
+    set_window_icon(root)
 
     width, height = px(400), px(230)
     screen_w = root.winfo_screenwidth()

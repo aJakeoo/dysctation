@@ -12,7 +12,10 @@ call .venv\Scripts\activate.bat
 pip install -r requirements.txt
 pip install pyinstaller
 
+python generate_icon.py
+
 pyinstaller --noconfirm --clean --onefile --windowed --name Dysctation ^
+    --icon=icon.ico ^
     --hidden-import pystray._win32 ^
     --hidden-import PIL._tkinter_finder ^
     --collect-all groq ^

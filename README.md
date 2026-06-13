@@ -1,36 +1,27 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Dysctation
 
-## Getting Started
+System-wide dictation for Windows powered by Groq Whisper. Built for people whose voices aren't always understood.
 
-First, run the development server:
+## Web app
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Visit [dysctation.vercel.app](https://dysctation.vercel.app) -- works in any browser, no install needed.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Windows app
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Download `Dysctation.exe` from the latest release. No Python required.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+First launch: you'll be prompted for a free Groq API key. Get one at [console.groq.com](https://console.groq.com), takes 30 seconds, no credit card.
 
-## Learn More
+You'll see a Windows security warning when you first run it. That's normal for any unsigned app. Click "More info" then "Run anyway" to proceed.
 
-To learn more about Next.js, take a look at the following resources:
+### How to use
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Press `Ctrl+Shift+Space` to start dictating
+- Speak, text pastes automatically into whatever field is focused
+- Press `Ctrl+Shift+Space` again to stop
+- The status pill in the bottom right shows Idle / Listening
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Settings (right-click the tray icon)
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Adjust pause sensitivity** -- control how long a silence triggers a paste
+- **Change API key** -- swap your Groq key anytime

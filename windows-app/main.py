@@ -23,8 +23,9 @@ from groq import Groq
 
 import dpi
 from icon import create_icon_image
+from instructions import run_instructions_standalone
 from paths import resource_path
-from settings import load_settings
+from settings import load_settings, save_settings
 from setup_window import run_first_run_setup
 from widget import StatusWidget
 
@@ -46,6 +47,9 @@ MODEL = "whisper-large-v3"
 print(f"[startup] Loading .env from {resource_path('.env')}", flush=True)
 load_dotenv(resource_path(".env"))
 
+SETTINGS = load_settings()
+print(f"[startup] Settings loaded: {SETTINGS}", flush=True)
+
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 if not GROQ_API_KEY:
     print("[startup] No GROQ_API_KEY found, showing first-run setup", flush=True)
@@ -53,11 +57,14 @@ if not GROQ_API_KEY:
     os.environ["GROQ_API_KEY"] = GROQ_API_KEY
 print("[startup] GROQ_API_KEY loaded", flush=True)
 
+if not SETTINGS.get("onboarding_complete"):
+    print("[startup] Showing onboarding instructions", flush=True)
+    run_instructions_standalone()
+    SETTINGS["onboarding_complete"] = True
+    save_settings(SETTINGS)
+
 groq_client = Groq(api_key=GROQ_API_KEY)
 print("[startup] Groq client initialized", flush=True)
-
-SETTINGS = load_settings()
-print(f"[startup] Settings loaded: {SETTINGS}", flush=True)
 
 listening = threading.Event()
 listen_thread: threading.Thread | None = None
@@ -177,6 +184,10 @@ def request_api_key_dialog() -> None:
     ui_requests.put("api_key")
 
 
+def request_instructions_dialog() -> None:
+    ui_requests.put("instructions")
+
+
 def apply_new_api_key(new_key: str) -> None:
     global groq_client, GROQ_API_KEY
 
@@ -230,6 +241,9 @@ def main() -> None:
             ),
             pystray.MenuItem(
                 "Change API key...", lambda: request_api_key_dialog()
+            ),
+            pystray.MenuItem(
+                "View instructions...", lambda: request_instructions_dialog()
             ),
             pystray.MenuItem("Quit", lambda: quit_app()),
         ),
