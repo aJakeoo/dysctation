@@ -8,7 +8,6 @@ over the run loop, which we drive on the main thread via
 NSApplication.run().
 """
 
-import io
 import threading
 from typing import Callable
 
@@ -18,7 +17,6 @@ from AppKit import (
     NSAlertFirstButtonReturn,
     NSApplication,
     NSApplicationActivationPolicyAccessory,
-    NSImage,
     NSMakeRect,
     NSMenu,
     NSMenuItem,
@@ -29,10 +27,10 @@ from AppKit import (
     NSVariableStatusItemLength,
     NSView,
 )
-from Foundation import NSBundle, NSData, NSObject, NSProcessInfo, NSTimer
+from Foundation import NSBundle, NSObject, NSProcessInfo, NSTimer
 
 from env_store import write_env_value
-from icon import create_icon_image
+from mac_icon import mic_icon
 from mac_input import HotkeyListener
 from mac_permissions import has_accessibility_permission, show_accessibility_alert
 from settings import save_settings
@@ -42,11 +40,11 @@ LISTENING_TITLE = "🎙 Listening..."
 POLL_INTERVAL = 0.2
 
 INSTRUCTIONS_TEXT = (
-    "Press Ctrl+Shift+Space to start listening -- the menu bar item "
+    "Press Ctrl+Shift+Space to start listening. The menu bar item "
     "will change to \"🎙 Listening...\".\n\n"
-    "Speak normally. After each pause, Dysctation transcribes what you "
-    "said with Groq Whisper and pastes it into whatever text field is "
-    "currently focused.\n\n"
+    "Speak as you naturally would. After each pause, Dysctation "
+    "transcribes what you said with Groq Whisper and pastes it into "
+    "whatever text field is currently focused.\n\n"
     "Press Ctrl+Shift+Space again to stop listening.\n\n"
     "Use \"Adjust pause sensitivity...\" to change how long a pause "
     "needs to be before a chunk is sent for transcription, and "
@@ -79,13 +77,10 @@ def set_app_name(name: str) -> None:
 
 def set_app_icon() -> None:
     """Replace the default Python rocket-ship icon (Force Quit, Dock,
-    alert windows) with the blue mic icon used for the tray icon."""
+    alert windows) with the same mic emoji shown in the menu bar, so
+    every window uses one consistent icon."""
     try:
-        buffer = io.BytesIO()
-        create_icon_image(False).save(buffer, format="PNG")
-        data = NSData.dataWithBytes_length_(buffer.getvalue(), len(buffer.getvalue()))
-        image = NSImage.alloc().initWithData_(data)
-        NSApplication.sharedApplication().setApplicationIconImage_(image)
+        NSApplication.sharedApplication().setApplicationIconImage_(mic_icon())
     except Exception:
         pass
 
@@ -101,6 +96,7 @@ def _text_alert(
     """Show an alert with a single text field. Returns the entered text
     if `ok` was clicked, or None if dismissed/cancelled."""
     alert = NSAlert.alloc().init()
+    alert.setIcon_(mic_icon())
     alert.setMessageText_(title)
     alert.setInformativeText_(message)
     alert.addButtonWithTitle_(ok)
@@ -132,6 +128,7 @@ def _sensitivity_alert(current_value: float) -> float | None:
     Returns the new value if "Save" was clicked, or None otherwise.
     """
     alert = NSAlert.alloc().init()
+    alert.setIcon_(mic_icon())
     alert.setMessageText_("Adjust Pause Sensitivity")
     alert.setInformativeText_(
         "How long to wait in silence before sending what you said for "
@@ -170,6 +167,7 @@ def _sensitivity_alert(current_value: float) -> float | None:
 
 def _info_alert(title: str, message: str) -> None:
     alert = NSAlert.alloc().init()
+    alert.setIcon_(mic_icon())
     alert.setMessageText_(title)
     alert.setInformativeText_(message)
     alert.addButtonWithTitle_("OK")

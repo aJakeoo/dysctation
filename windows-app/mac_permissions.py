@@ -11,6 +11,8 @@ import subprocess
 from ApplicationServices import AXIsProcessTrusted
 from AppKit import NSAlert, NSAlertFirstButtonReturn
 
+from mac_icon import mic_icon
+
 ACCESSIBILITY_SETTINGS_URL = (
     "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
 )
@@ -30,6 +32,7 @@ def show_accessibility_alert() -> None:
     won't work until access is granted.
     """
     alert = NSAlert.alloc().init()
+    alert.setIcon_(mic_icon())
     alert.setMessageText_("Accessibility Access Required")
     alert.setInformativeText_(
         "Dysctation needs Accessibility access to listen for the "
