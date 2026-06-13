@@ -143,3 +143,85 @@ Remaining tunable constants are at the top of `main.py`:
   missing/invalid `GROQ_API_KEY` or a microphone permission issue.
 - **Wrong microphone is used**: PyAudio uses the system default input
   device. Change it in Windows Sound settings.
+
+## macOS
+
+The app also runs natively on macOS, as a menu bar app built directly
+on PyObjC/AppKit (`NSStatusBar`, `NSMenu`, `NSAlert`) instead of pystray
++ tkinter -- mixing those two on macOS causes a fatal `NSException`
+crash, since both want to run their own event loop on the main thread.
+The Windows `keyboard` library also needs root on macOS, so the Mac
+build uses `pynput` instead for the global hotkey and for simulating
+the paste keystroke.
+
+### 1. Install dependencies
+
+```bash
+cd windows-app
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-mac.txt
+```
+
+If `pip install PyAudio` fails, install portaudio first:
+`brew install portaudio`.
+
+### 2. Run from source
+
+```bash
+python main.py
+```
+
+A menu bar item shows "🎙 Idle" / "🎙 Listening..." depending on state.
+Click it for the same menu as below, or press **Ctrl+Shift+Space** to
+toggle listening, same as on Windows. Same first-run API key prompt too.
+
+### 3. Menu bar menu
+
+Click the menu bar item for:
+
+- **Toggle Listening (Ctrl+Shift+Space)** — same as the hotkey.
+- **Adjust pause sensitivity...** — opens an alert with a slider
+  (0.5–5 seconds, default 1.5s) controlling how long you can pause
+  before a chunk is sent for transcription. Saved to `settings.json` so
+  it persists between sessions.
+- **Change API key...** — opens an alert to paste a new Groq API key.
+  Saves it to `.env` and re-initializes the Groq client immediately, no
+  restart needed.
+- **View instructions** — shows a quick reminder of how the hotkey and
+  menu work.
+- **Quit**.
+
+### 4. Grant Accessibility access
+
+On first launch (or whenever permission isn't yet granted), Dysctation
+shows an alert explaining that it needs Accessibility access to listen
+for the global hotkey and to paste transcribed text into other apps.
+Click "Open System Settings", then go to **Privacy & Security →
+Accessibility** and enable Dysctation. Quit and relaunch Dysctation
+afterwards.
+
+The app still launches and shows the menu bar item even without this
+permission -- the hotkey just won't fire and pasting won't work until
+access is granted. Once granted, Dysctation automatically restarts its
+hotkey listener in the background -- no need to quit and relaunch.
+
+**Running from source** (`python main.py`): the process receiving key
+events is your terminal app, not "Dysctation", so enable **Terminal**
+(or iTerm, etc. -- whichever app you're running the command from) in
+that same Accessibility list instead.
+
+### 5. Build a standalone .app / .dmg
+
+```bash
+brew install create-dmg   # optional, for the .dmg
+./build-mac.sh
+```
+
+This creates a virtual environment (if needed), installs dependencies
+and PyInstaller, and produces `dist/Dysctation.app`. If `create-dmg` is
+installed, it also packages that into `dist/Dysctation.dmg`. The app is
+hidden from the Dock and Cmd+Tab (it only shows up as a menu bar item).
+If `.env` exists, it's copied into the app bundle; otherwise the app
+shows the first-run setup window and creates `.env` itself next to the
+executable inside the bundle.

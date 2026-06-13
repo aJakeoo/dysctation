@@ -8,25 +8,35 @@ Whisper for transcription and pasted into the focused field.
 import io
 import os
 import queue
+import sys
 import threading
 import time
 import traceback
 import wave
 
-import keyboard
 import numpy as np
 import pyaudio
 import pyperclip
-import pystray
 from dotenv import load_dotenv
 from groq import Groq
 
 import dpi
-from icon import create_icon_image
 from paths import resource_path
 from settings import load_settings
-from setup_window import run_first_run_setup
-from widget import StatusWidget
+
+if sys.platform == "win32":
+    import keyboard
+    import pystray
+
+    from icon import create_icon_image
+    from setup_window import run_first_run_setup
+    from widget import StatusWidget
+else:
+    from mac_app import run_first_run_setup_mac as run_first_run_setup
+    from mac_app import run_mac_app, set_app_name
+    from mac_input import send_paste
+
+    set_app_name("Dysctation")
 
 dpi.enable()
 
@@ -61,8 +71,8 @@ print(f"[startup] Settings loaded: {SETTINGS}", flush=True)
 
 listening = threading.Event()
 listen_thread: threading.Thread | None = None
-tray_icon: pystray.Icon | None = None
-status_widget: StatusWidget | None = None
+tray_icon = None
+status_widget = None
 ui_requests: "queue.Queue[str]" = queue.Queue()
 
 
@@ -96,7 +106,10 @@ def transcribe_and_paste(frames: list[bytes]) -> None:
 
     pyperclip.copy(text)
     time.sleep(0.1)
-    keyboard.send("ctrl+v")
+    if sys.platform == "win32":
+        keyboard.send("ctrl+v")
+    else:
+        send_paste()
 
 
 def listen_loop() -> None:
@@ -204,7 +217,7 @@ def run_tray_icon() -> None:
         traceback.print_exc()
 
 
-def main() -> None:
+def run_windows() -> None:
     global tray_icon, status_widget
 
     print(f"[startup] Registering global hotkey: {HOTKEY}", flush=True)
@@ -257,6 +270,29 @@ def main() -> None:
         if tray_icon is not None:
             tray_icon.stop()
         print("[startup] Hotkey unhooked, exiting", flush=True)
+
+
+def run_mac() -> None:
+    print("[startup] Starting macOS menu bar app", flush=True)
+    try:
+        run_mac_app(
+            listening_event=listening,
+            settings_data=SETTINGS,
+            toggle_listening=toggle_listening,
+            apply_new_api_key=apply_new_api_key,
+            quit_app=quit_app,
+        )
+    except Exception:
+        print("[startup] macOS app raised an exception:", flush=True)
+        traceback.print_exc()
+    print("[startup] macOS app exited", flush=True)
+
+
+def main() -> None:
+    if sys.platform == "win32":
+        run_windows()
+    else:
+        run_mac()
 
 
 if __name__ == "__main__":

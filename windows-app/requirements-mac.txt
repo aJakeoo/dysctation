@@ -1,0 +1,10 @@
+pynput
+PyAudio
+pyperclip
+groq
+Pillow
+numpy
+python-dotenv
+pyobjc-framework-Cocoa
+pyobjc-framework-ApplicationServices
+pyobjc-framework-Quartz
