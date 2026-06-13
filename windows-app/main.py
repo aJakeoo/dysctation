@@ -7,7 +7,7 @@ Whisper for transcription and pasted into the focused field.
 
 import io
 import os
-import sys
+import queue
 import threading
 import time
 import traceback
@@ -21,8 +21,14 @@ import pystray
 from dotenv import load_dotenv
 from groq import Groq
 
+import dpi
 from icon import create_icon_image
+from paths import resource_path
+from settings import load_settings
+from setup_window import run_first_run_setup
 from widget import StatusWidget
+
+dpi.enable()
 
 # --- Configuration ---
 RATE = 16000
@@ -31,20 +37,10 @@ FORMAT = pyaudio.paInt16
 CHUNK = 1024
 
 SILENCE_THRESHOLD = 500       # RMS amplitude below this counts as silence
-SILENCE_DURATION = 1.5        # seconds of silence that ends a chunk
 MIN_CHUNK_DURATION = 0.5      # minimum chunk length sent for transcription
 
 HOTKEY = "ctrl+shift+space"
 MODEL = "whisper-large-v3"
-
-
-def resource_path(filename: str) -> str:
-    """Resolve a path next to the script, or next to the frozen exe."""
-    if getattr(sys, "frozen", False):
-        base = os.path.dirname(sys.executable)
-    else:
-        base = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base, filename)
 
 
 print(f"[startup] Loading .env from {resource_path('.env')}", flush=True)
@@ -52,19 +48,22 @@ load_dotenv(resource_path(".env"))
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 if not GROQ_API_KEY:
-    raise RuntimeError(
-        "GROQ_API_KEY is not set. Add it to windows-app/.env "
-        "(see .env.example)."
-    )
+    print("[startup] No GROQ_API_KEY found, showing first-run setup", flush=True)
+    GROQ_API_KEY = run_first_run_setup()
+    os.environ["GROQ_API_KEY"] = GROQ_API_KEY
 print("[startup] GROQ_API_KEY loaded", flush=True)
 
 groq_client = Groq(api_key=GROQ_API_KEY)
 print("[startup] Groq client initialized", flush=True)
 
+SETTINGS = load_settings()
+print(f"[startup] Settings loaded: {SETTINGS}", flush=True)
+
 listening = threading.Event()
 listen_thread: threading.Thread | None = None
 tray_icon: pystray.Icon | None = None
 status_widget: StatusWidget | None = None
+ui_requests: "queue.Queue[str]" = queue.Queue()
 
 
 def rms(audio_bytes: bytes) -> float:
@@ -110,7 +109,6 @@ def listen_loop() -> None:
         frames_per_buffer=CHUNK,
     )
 
-    silence_chunks_needed = int(SILENCE_DURATION * RATE / CHUNK)
     min_chunks = int(MIN_CHUNK_DURATION * RATE / CHUNK)
 
     frames: list[bytes] = []
@@ -121,6 +119,8 @@ def listen_loop() -> None:
         while listening.is_set():
             data = stream.read(CHUNK, exception_on_overflow=False)
             frames.append(data)
+
+            silence_chunks_needed = int(SETTINGS["silence_duration"] * RATE / CHUNK)
 
             if rms(data) < SILENCE_THRESHOLD:
                 silence_run += 1
@@ -169,6 +169,23 @@ def toggle_listening() -> None:
     set_listening(not listening.is_set())
 
 
+def request_pause_sensitivity_dialog() -> None:
+    ui_requests.put("pause_sensitivity")
+
+
+def request_api_key_dialog() -> None:
+    ui_requests.put("api_key")
+
+
+def apply_new_api_key(new_key: str) -> None:
+    global groq_client, GROQ_API_KEY
+
+    GROQ_API_KEY = new_key
+    os.environ["GROQ_API_KEY"] = new_key
+    groq_client = Groq(api_key=new_key)
+    print("[settings] Groq client re-initialized with new API key", flush=True)
+
+
 def quit_app() -> None:
     set_listening(False)
     if tray_icon is not None:
@@ -207,6 +224,13 @@ def main() -> None:
             pystray.MenuItem(
                 "Toggle listening (Ctrl+Shift+Space)", lambda: toggle_listening()
             ),
+            pystray.MenuItem(
+                "Adjust pause sensitivity...",
+                lambda: request_pause_sensitivity_dialog(),
+            ),
+            pystray.MenuItem(
+                "Change API key...", lambda: request_api_key_dialog()
+            ),
             pystray.MenuItem("Quit", lambda: quit_app()),
         ),
     )
@@ -216,7 +240,12 @@ def main() -> None:
 
     try:
         print("[startup] Creating status widget", flush=True)
-        status_widget = StatusWidget(listening)
+        status_widget = StatusWidget(
+            listening,
+            ui_requests=ui_requests,
+            settings_data=SETTINGS,
+            on_api_key_change=apply_new_api_key,
+        )
         print("[startup] Status widget created, starting Tk mainloop", flush=True)
         status_widget.run()
         print("[startup] Tk mainloop exited", flush=True)

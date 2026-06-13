@@ -1,44 +1,19 @@
 """Always-on-top status widget showing listening/idle state."""
 
 import math
+import queue
 import threading
 import tkinter as tk
+from typing import Callable, Optional
 
 from PIL import ImageTk
 
+import dpi
+from dialogs import open_api_key_dialog, open_pause_sensitivity_dialog
 from icon import create_mic_glyph
 
-
-def _enable_dpi_awareness() -> None:
-    """Make the process DPI-aware so Windows renders the window (and its
-    text) at native resolution instead of bitmap-scaling it, which is
-    what causes blurry text on scaled displays."""
-    try:
-        import ctypes
-
-        try:
-            ctypes.windll.shcore.SetProcessDpiAwareness(2)  # per-monitor
-        except (AttributeError, OSError):
-            ctypes.windll.user32.SetProcessDPIAware()
-    except Exception:
-        pass
-
-
-def _dpi_scale() -> float:
-    """Return the primary monitor's display scale factor (1.0 = 100%)."""
-    try:
-        import ctypes
-
-        factor = ctypes.windll.shcore.GetScaleFactorForDevice(0)
-        if factor > 0:
-            return factor / 100.0
-    except Exception:
-        pass
-    return 1.0
-
-
-_enable_dpi_awareness()
-_SCALE = _dpi_scale()
+dpi.enable()
+_SCALE = dpi.scale()
 
 
 def _px(value: float) -> int:
@@ -68,8 +43,18 @@ PULSE_STEP_MS = 80
 class StatusWidget:
     """A small borderless, always-on-top status pill."""
 
-    def __init__(self, listening_event: threading.Event):
+    def __init__(
+        self,
+        listening_event: threading.Event,
+        ui_requests: Optional["queue.Queue[str]"] = None,
+        settings_data: Optional[dict] = None,
+        on_api_key_change: Optional[Callable[[str], None]] = None,
+    ):
         self.listening = listening_event
+        self.ui_requests = ui_requests
+        self.settings_data = settings_data
+        self.on_api_key_change = on_api_key_change
+        self._open_dialogs: set[str] = set()
 
         self.root = tk.Tk()
         self.root.overrideredirect(True)
@@ -166,7 +151,34 @@ class StatusWidget:
         active = self.listening.is_set()
         if active != self._current_state:
             self._set_state(active)
+        self._drain_ui_requests()
         self.root.after(POLL_MS, self._poll)
+
+    def _drain_ui_requests(self) -> None:
+        if self.ui_requests is None:
+            return
+        while True:
+            try:
+                request = self.ui_requests.get_nowait()
+            except queue.Empty:
+                break
+
+            if request in self._open_dialogs:
+                continue
+
+            if request == "pause_sensitivity":
+                win = open_pause_sensitivity_dialog(self.root, self.settings_data)
+            elif request == "api_key":
+                win = open_api_key_dialog(
+                    self.root, self.on_api_key_change or (lambda _key: None)
+                )
+            else:
+                continue
+
+            self._open_dialogs.add(request)
+            win.bind(
+                "<Destroy>", lambda _e, r=request: self._open_dialogs.discard(r)
+            )
 
     def _pulse(self) -> None:
         if not self.listening.is_set():
