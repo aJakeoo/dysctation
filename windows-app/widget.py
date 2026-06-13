@@ -8,10 +8,51 @@ from PIL import ImageTk
 
 from icon import create_mic_glyph
 
-WIDTH = 170
-HEIGHT = 48
-MARGIN_RIGHT = 20
-MARGIN_BOTTOM = 60
+
+def _enable_dpi_awareness() -> None:
+    """Make the process DPI-aware so Windows renders the window (and its
+    text) at native resolution instead of bitmap-scaling it, which is
+    what causes blurry text on scaled displays."""
+    try:
+        import ctypes
+
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(2)  # per-monitor
+        except (AttributeError, OSError):
+            ctypes.windll.user32.SetProcessDPIAware()
+    except Exception:
+        pass
+
+
+def _dpi_scale() -> float:
+    """Return the primary monitor's display scale factor (1.0 = 100%)."""
+    try:
+        import ctypes
+
+        factor = ctypes.windll.shcore.GetScaleFactorForDevice(0)
+        if factor > 0:
+            return factor / 100.0
+    except Exception:
+        pass
+    return 1.0
+
+
+_enable_dpi_awareness()
+_SCALE = _dpi_scale()
+
+
+def _px(value: float) -> int:
+    return round(value * _SCALE)
+
+
+HEIGHT = _px(36)
+WIDTH = _px(136)
+MARGIN_RIGHT = _px(20)
+MARGIN_BOTTOM = _px(56)
+
+PAD_LEFT = _px(14)
+ICON_TEXT_GAP = _px(8)
+ICON_SIZE = _px(18)
 
 BG_COLOR = "#2b2825"
 CARD_COLOR = "#3a352f"
@@ -19,13 +60,13 @@ TEXT_COLOR = "#ece6df"
 ACCENT_BLUE = "#4f7fc7"
 ACCENT_GREY = "#9a948c"
 
-ICON_SIZE = 22
+FONT = ("Segoe UI", 10)
 POLL_MS = 150
 PULSE_STEP_MS = 80
 
 
 class StatusWidget:
-    """A small borderless, always-on-top, click-through-ish status panel."""
+    """A small borderless, always-on-top status pill."""
 
     def __init__(self, listening_event: threading.Event):
         self.listening = listening_event
@@ -33,7 +74,8 @@ class StatusWidget:
         self.root = tk.Tk()
         self.root.overrideredirect(True)
         self.root.attributes("-topmost", True)
-        self.root.attributes("-alpha", 0.88)
+        self.root.attributes("-alpha", 0.92)
+        self.root.attributes("-transparentcolor", BG_COLOR)
         self.root.config(bg=BG_COLOR)
 
         screen_w = self.root.winfo_screenwidth()
@@ -45,19 +87,25 @@ class StatusWidget:
         self._make_non_activating()
 
         self.canvas = tk.Canvas(
-            self.root, width=WIDTH, height=HEIGHT, bg=BG_COLOR, highlightthickness=0
+            self.root,
+            width=WIDTH,
+            height=HEIGHT,
+            bg=BG_COLOR,
+            highlightthickness=0,
+            bd=0,
         )
         self.canvas.pack(fill="both", expand=True)
-        self._draw_rounded_rect(1, 1, WIDTH - 1, HEIGHT - 1, radius=14, fill=CARD_COLOR)
+        self._draw_pill()
 
         self._icon_image = None
-        self._icon_item = self.canvas.create_image(26, HEIGHT // 2, anchor="w")
+        icon_y = HEIGHT // 2
+        self._icon_item = self.canvas.create_image(PAD_LEFT, icon_y, anchor="w")
         self._text_item = self.canvas.create_text(
-            52,
-            HEIGHT // 2,
+            PAD_LEFT + ICON_SIZE + ICON_TEXT_GAP,
+            icon_y,
             anchor="w",
             fill=TEXT_COLOR,
-            font=("Segoe UI", 11, "bold"),
+            font=FONT,
             text="Idle",
         )
 
@@ -83,22 +131,21 @@ class StatusWidget:
         except Exception as exc:
             print(f"[widget] Could not set non-activating window style: {exc}")
 
-    def _draw_rounded_rect(self, x1, y1, x2, y2, radius, **kwargs):
-        points = [
-            x1 + radius, y1,
-            x2 - radius, y1,
-            x2, y1,
-            x2, y1 + radius,
-            x2, y2 - radius,
-            x2, y2,
-            x2 - radius, y2,
-            x1 + radius, y2,
-            x1, y2,
-            x1, y2 - radius,
-            x1, y1 + radius,
-            x1, y1,
-        ]
-        return self.canvas.create_polygon(points, smooth=True, **kwargs)
+    def _draw_pill(self) -> None:
+        """Draw a seamless, fully-rounded pill with hard (non-aliased) edges.
+
+        Built from two end caps (ovals) plus a connecting rectangle, all in
+        the same fill color, so the result reads as one solid shape with no
+        seams. The canvas background stays BG_COLOR, which is set as the
+        window's transparent color key -- so everything outside the pill is
+        invisible and the window itself appears pill-shaped.
+        """
+        d = HEIGHT
+        self.canvas.create_oval(0, 0, d, d, fill=CARD_COLOR, outline="")
+        self.canvas.create_oval(WIDTH - d, 0, WIDTH, d, fill=CARD_COLOR, outline="")
+        self.canvas.create_rectangle(
+            d / 2, 0, WIDTH - d / 2, HEIGHT, fill=CARD_COLOR, outline=""
+        )
 
     def _set_icon_color(self, color: str) -> None:
         self._icon_image = ImageTk.PhotoImage(create_mic_glyph(color, ICON_SIZE))
