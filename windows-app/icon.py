@@ -37,3 +37,35 @@ def create_icon_image(recording: bool) -> Image.Image:
         draw.ellipse((cx - dot_r, cy - dot_r, cx + dot_r, cy + dot_r), fill=RECORD_RED)
 
     return image
+
+
+def create_mic_glyph(color, size: int = 24) -> Image.Image:
+    """Draw just the mic glyph (no background circle) in a solid color,
+    for use in the status widget."""
+    image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+
+    draw.rounded_rectangle(
+        (size * 0.38, size * 0.06, size * 0.62, size * 0.56),
+        radius=size * 0.12,
+        fill=color,
+    )
+    draw.arc(
+        (size * 0.20, size * 0.28, size * 0.80, size * 0.76),
+        start=0,
+        end=180,
+        fill=color,
+        width=max(2, round(size * 0.09)),
+    )
+    draw.line(
+        (size * 0.5, size * 0.70, size * 0.5, size * 0.88),
+        fill=color,
+        width=max(2, round(size * 0.09)),
+    )
+    draw.line(
+        (size * 0.34, size * 0.88, size * 0.66, size * 0.88),
+        fill=color,
+        width=max(2, round(size * 0.09)),
+    )
+
+    return image

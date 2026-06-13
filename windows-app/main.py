@@ -10,6 +10,7 @@ import os
 import sys
 import threading
 import time
+import traceback
 import wave
 
 import keyboard
@@ -21,6 +22,7 @@ from dotenv import load_dotenv
 from groq import Groq
 
 from icon import create_icon_image
+from widget import StatusWidget
 
 # --- Configuration ---
 RATE = 16000
@@ -45,6 +47,7 @@ def resource_path(filename: str) -> str:
     return os.path.join(base, filename)
 
 
+print(f"[startup] Loading .env from {resource_path('.env')}", flush=True)
 load_dotenv(resource_path(".env"))
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
@@ -53,12 +56,15 @@ if not GROQ_API_KEY:
         "GROQ_API_KEY is not set. Add it to windows-app/.env "
         "(see .env.example)."
     )
+print("[startup] GROQ_API_KEY loaded", flush=True)
 
 groq_client = Groq(api_key=GROQ_API_KEY)
+print("[startup] Groq client initialized", flush=True)
 
 listening = threading.Event()
 listen_thread: threading.Thread | None = None
 tray_icon: pystray.Icon | None = None
+status_widget: StatusWidget | None = None
 
 
 def rms(audio_bytes: bytes) -> float:
@@ -167,16 +173,35 @@ def quit_app() -> None:
     set_listening(False)
     if tray_icon is not None:
         tray_icon.stop()
+    if status_widget is not None:
+        status_widget.close()
+
+
+def run_tray_icon() -> None:
+    try:
+        print("[startup] Calling tray_icon.run() - tray icon should appear now", flush=True)
+        tray_icon.run()
+        print("[startup] tray_icon.run() returned", flush=True)
+    except Exception:
+        print("[startup] tray_icon.run() raised an exception:", flush=True)
+        traceback.print_exc()
 
 
 def main() -> None:
-    global tray_icon
+    global tray_icon, status_widget
 
+    print(f"[startup] Registering global hotkey: {HOTKEY}", flush=True)
     keyboard.add_hotkey(HOTKEY, toggle_listening)
+    print("[startup] Hotkey registered", flush=True)
 
+    print("[startup] Generating tray icon image", flush=True)
+    image = create_icon_image(False)
+    print("[startup] Tray icon image generated", flush=True)
+
+    print("[startup] Creating pystray.Icon", flush=True)
     tray_icon = pystray.Icon(
         "Dysctation",
-        create_icon_image(False),
+        image,
         "Dysctation (idle)",
         menu=pystray.Menu(
             pystray.MenuItem(
@@ -185,11 +210,24 @@ def main() -> None:
             pystray.MenuItem("Quit", lambda: quit_app()),
         ),
     )
+    print("[startup] pystray.Icon created", flush=True)
+
+    threading.Thread(target=run_tray_icon, daemon=True).start()
 
     try:
-        tray_icon.run()
+        print("[startup] Creating status widget", flush=True)
+        status_widget = StatusWidget(listening)
+        print("[startup] Status widget created, starting Tk mainloop", flush=True)
+        status_widget.run()
+        print("[startup] Tk mainloop exited", flush=True)
+    except Exception:
+        print("[startup] status widget raised an exception:", flush=True)
+        traceback.print_exc()
     finally:
         keyboard.unhook_all()
+        if tray_icon is not None:
+            tray_icon.stop()
+        print("[startup] Hotkey unhooked, exiting", flush=True)
 
 
 if __name__ == "__main__":

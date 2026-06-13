@@ -10,7 +10,14 @@ field is currently focused.
 - Sits in the system tray as a blue mic icon, drawn programmatically
   with Pillow (no image files needed). A small red dot appears on the
   icon while listening.
-- **Ctrl+Shift+Space** toggles listening on/off.
+- A small always-on-top status widget sits in the bottom-right corner
+  of the screen: a semi-transparent, rounded, borderless panel showing
+  a grey mic + "Idle" when off, or a pulsing blue mic + "Listening..."
+  while active. It won't steal focus or take keyboard activation
+  (`WS_EX_NOACTIVATE` / `WS_EX_TOOLWINDOW`), so it stays out of the way
+  of whatever you're typing into.
+- **Ctrl+Shift+Space** toggles listening on/off — press once to start,
+  press again to stop (toggle mode, not hold-to-talk).
 - While listening, the app continuously records from your default
   microphone.
 - When it detects ~1.5 seconds of silence after speech (and the chunk
