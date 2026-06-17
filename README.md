@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Dysctation
 
-## Getting Started
+System-wide dictation powered by Groq Whisper. Built for people whose voices aren't always understood.
 
-First, run the development server:
+## Download
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Windows** — download `Dysctation.exe` from the [latest release](https://github.com/aJakeoo/dysctation/releases)
+- **Mac** — download `Dysctation.dmg` from the [latest release](https://github.com/aJakeoo/dysctation/releases)
+- **Web** — visit [dysctation.vercel.app](https://dysctation.vercel.app), works in any browser
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## How it works
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Press `Ctrl+Shift+Space` to start dictating. Speak as you naturally would. Dysctation transcribes your voice using Groq Whisper and pastes the text directly into whatever field is focused.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+You'll need a free Groq API key from [console.groq.com](https://console.groq.com) on first launch.
 
-## Learn More
+## A note on security warnings
 
-To learn more about Next.js, take a look at the following resources:
+Both Windows and Mac will show a security warning the first time you run Dysctation. That is completely normal for any app that isn't commercially signed -- it always freaks me out too, but it is fine.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Windows** — click "More info" then "Run anyway"
+- **Mac** — go to System Settings, Privacy and Security, scroll down and click "Open Anyway"
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Dysctation is open source. If you are ever unsure, the full source code is right here on this repo.
 
-## Deploy on Vercel
+## Privacy and security
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Dysctation is open source and always will be. Here is exactly what happens with your data:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Audio is recorded locally on your device only while the app is actively listening
+- Each audio chunk is sent directly to Groq's Whisper API for transcription and nowhere else
+- Groq does not use API data to train models and does not retain it beyond processing
+- Your Groq API key is stored locally on your device and never transmitted anywhere except to Groq
+- No usage data, analytics, or logs are collected
+
+The source code is fully readable on this repo. If you have concerns, please, read it yourself!
+
+## Branches
+
+- `master` — web app, deployed to Vercel
+- `windows-app` — Windows and Mac desktop apps
