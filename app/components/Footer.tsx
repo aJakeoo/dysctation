@@ -7,8 +7,11 @@ export function Footer() {
         Snippets are stored locally on your device only and are never
         uploaded or shared.
       </p>
-      <p className="mt-1">
-        <Link href="/contribute" className="underline hover:text-muted">
+      <p className="mt-3">
+        <Link
+          href="/contribute"
+          className="inline-block rounded-full bg-accent-soft px-4 py-2 font-semibold text-foreground transition-colors hover:bg-accent-soft/80"
+        >
           Contribute your voice
         </Link>
       </p>

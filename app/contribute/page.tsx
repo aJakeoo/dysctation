@@ -108,14 +108,15 @@ export default function ContributePage() {
 
           <div className="mt-8 rounded-2xl border border-border bg-card p-4 text-sm leading-relaxed text-foreground shadow-sm">
             By recording yourself here, you agree that your voice recordings
-            may be used to train speech recognition models to better
-            understand FA voices. Recordings are stored securely and never
-            shared publicly. You can request deletion at any time by emailing{" "}
+            will be used to train AI speech recognition models to better
+            transcribe the voices of people with Friedreich&apos;s Ataxia.
+            Recordings are stored securely and never shared publicly. You can
+            request deletion at any time by emailing{" "}
             <a
-              href="mailto:jake@dysctation.app"
+              href="mailto:jakejuip@gmail.com"
               className="font-semibold underline"
             >
-              jake@dysctation.app
+              jakejuip@gmail.com
             </a>
             .
           </div>
