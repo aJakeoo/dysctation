@@ -32,6 +32,7 @@ Dysctation is open source and always will be. Here is exactly what happens with 
 - Groq does not use API data to train models and does not retain it beyond processing
 - Your Groq API key is stored locally on your device and never transmitted anywhere except to Groq
 - No usage data, analytics, or logs are collected
+- Voice recordings contributed via the `/contribute` page are stored in Supabase and used solely for training speech recognition models to better understand FA voices
 
 The source code is fully readable on this repo. If you have concerns, please, read it yourself!
 

@@ -1,0 +1,61 @@
+export const PROMPTS: string[] = [
+  // Everyday phrases
+  "Can you send me that file?",
+  "I'll be there in ten minutes.",
+  "What time does it start?",
+  "Could you repeat that please?",
+  "I need a little more time.",
+  "Turn left at the next street.",
+  "Can you open the door for me?",
+  "I'd like to order the soup.",
+  "My phone is almost out of battery.",
+  "Can we schedule that for tomorrow?",
+  "I appreciate your patience.",
+  "Please speak a little slower.",
+  "The meeting is at three o'clock.",
+  "I need help with this form.",
+  "Thank you for waiting.",
+
+  // Consonant-heavy sentences
+  "Peter picked a peck of pickled peppers.",
+  "She sells seashells by the seashore.",
+  "Specifically, the staff struggled significantly.",
+  "The quick brown fox jumps over the lazy dog.",
+  "Crispy crackers crumble quickly.",
+  "Proper preparation prevents poor performance.",
+  "Fresh french fries from Friday's fryer.",
+  "Black bugs bleed blue-black blood.",
+  "Six slippery snails slid slowly seaward.",
+  "Thick thistles and twisted twigs.",
+
+  // FA-specific vocabulary
+  "Friedreich's Ataxia affects coordination and balance.",
+  "My occupational therapist visits on Thursdays.",
+  "I use a power wheelchair for mobility.",
+  "The accessibility ramp is around the corner.",
+  "My speech therapist recommended this exercise.",
+  "FARA funds research into hereditary ataxia.",
+  "I take my medication twice daily with food.",
+  "The neurologist reviewed my MRI results.",
+  "Assistive technology helps me communicate better.",
+  "My caregiver helps me with daily activities.",
+
+  // Longer sentences for breath support
+  "I wanted to let you know that I will be arriving a few minutes late to our appointment today.",
+  "The weather has been quite unpredictable lately and I am not sure what to wear when I go outside.",
+  "Could you please help me find the accessible entrance to this building because I cannot locate it.",
+  "I have been using this dictation tool for several weeks now and it has made a big difference in my daily life.",
+  "My physical therapist suggested that I try some new exercises to help improve my strength and endurance over time.",
+  "I would really appreciate it if you could slow down a little because I am having some difficulty following what you are saying.",
+  "The conference on rare diseases starts next Monday and I am planning to attend and speak about my experience.",
+  "Technology has opened up so many new possibilities for people with disabilities and I am excited about what is coming next.",
+
+  // Numbers and proper nouns
+  "My appointment is on June fifteenth at two thirty.",
+  "The address is four twenty two North Michigan Avenue.",
+  "Call me back at seven three one, five five five, oh nine two one.",
+  "The medication dosage is two hundred and fifty milligrams.",
+  "My insurance ID number is A B C one two three four five.",
+  "The conference is in Washington DC from October third to fifth.",
+  "I was born on March eighth, two thousand and six.",
+];
