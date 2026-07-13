@@ -151,7 +151,7 @@ export default function ContributePage() {
     screen === "documentPicker" ? "max-w-2xl" : "max-w-md";
 
   return (
-    <div className="flex flex-1 flex-col items-center px-6">
+    <div className="bg-wireframe flex flex-1 flex-col items-center px-6">
       <main
         className={`flex w-full ${mainWidthClass} flex-1 flex-col items-center pt-16 sm:pt-24`}
       >

@@ -8,15 +8,6 @@ interface SnippetCardProps {
   onDelete: (id: string) => void;
 }
 
-function getPreview(text: string): string {
-  const sentences = text.match(/[^.!?]+[.!?]*/g) ?? [text];
-  const preview = sentences.slice(0, 2).join("").trim();
-  if (preview.length < text.trim().length) {
-    return preview.length > 0 ? `${preview}` : text;
-  }
-  return preview;
-}
-
 function formatTime(timestamp: number): string {
   return new Date(timestamp).toLocaleString(undefined, {
     month: "short",
@@ -27,55 +18,36 @@ function formatTime(timestamp: number): string {
 }
 
 export function SnippetCard({ snippet, onDelete }: SnippetCardProps) {
-  const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const preview = getPreview(snippet.text);
-  const hasMore = preview.length < snippet.text.trim().length;
-
-  const handleCopy = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleCopy = async () => {
     await navigator.clipboard.writeText(snippet.text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setTimeout(() => setCopied(false), 1200);
   };
 
   return (
     <div
-      onClick={() => setExpanded((v) => !v)}
-      className="cursor-pointer rounded-2xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md"
+      onClick={handleCopy}
+      className="cursor-pointer rounded-2xl border border-border bg-card p-5 transition-shadow hover:shadow-[0_4px_18px_rgba(43,42,39,0.06)]"
     >
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm leading-relaxed text-foreground">
-          {expanded ? snippet.text : preview}
-          {!expanded && hasMore && (
-            <span className="text-muted">&nbsp;&hellip;</span>
-          )}
-        </p>
-      </div>
-      <div className="mt-3 flex items-center justify-between text-xs text-muted">
-        <span>{formatTime(snippet.createdAt)}</span>
-        <div className="flex items-center gap-3">
-          {expanded && (
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="rounded-full px-3 py-1 font-semibold text-foreground transition-colors hover:bg-accent-soft"
-            >
-              {copied ? "Copied" : "Copy"}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(snippet.id);
-            }}
-            className="rounded-full px-3 py-1 font-semibold transition-colors hover:bg-accent-soft hover:text-foreground"
-          >
-            Delete
-          </button>
-        </div>
+      <p className="text-[17px] font-bold leading-relaxed text-foreground">
+        {snippet.text}
+      </p>
+      <div className="mt-3.5 flex items-center justify-between">
+        <span className="text-[13px] font-semibold text-muted">
+          {copied ? "Copied!" : formatTime(snippet.createdAt)}
+        </span>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(snippet.id);
+          }}
+          className="rounded-full p-1.5 text-[13.5px] font-bold text-muted transition-colors hover:text-[#b5533f]"
+        >
+          Delete
+        </button>
       </div>
     </div>
   );

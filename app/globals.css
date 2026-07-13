@@ -2,14 +2,17 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #2b2825;
+  --foreground: #2b2a27;
   --accent: #b9ac9c;
   --accent-soft: #ece6df;
-  --muted: #8c8579;
+  --muted: #8a8378;
   --muted-light: #d8d3cc;
+  --ink-soft: #6f6a62;
   --card: #fbfaf8;
-  --border: #eae5de;
+  --border: #e6e2da;
   --mic: #4f7fc7;
+  --mic-dark: #3d6bb0;
+  --wave-line: #b7bcc3;
 }
 
 @theme inline {
@@ -19,9 +22,11 @@
   --color-accent-soft: var(--accent-soft);
   --color-muted: var(--muted);
   --color-muted-light: var(--muted-light);
+  --color-ink-soft: var(--ink-soft);
   --color-card: var(--card);
   --color-border: var(--border);
   --color-mic: var(--mic);
+  --color-mic-dark: var(--mic-dark);
   --font-sans: var(--font-nunito);
 }
 
@@ -29,6 +34,9 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), sans-serif;
+}
+
+.bg-wireframe {
   background-image: url("/wireframe.svg");
   background-repeat: repeat;
   background-size: 160px 160px;

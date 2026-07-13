@@ -7,7 +7,9 @@ interface WaveformProps {
   active: boolean;
 }
 
-const BAR_COUNT = 28;
+const BAR_COUNT = 34;
+const ACTIVE_COLOR = "#4f7fc7";
+const IDLE_COLOR = "#e6e2da";
 
 export function Waveform({ analyser, active }: WaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -55,9 +57,7 @@ export function Waveform({ analyser, active }: WaveformProps) {
         const y = (height - barHeight) / 2;
         const w = barWidth - gap;
 
-        ctx.fillStyle = active
-          ? "rgba(140, 133, 121, 0.55)"
-          : "rgba(140, 133, 121, 0.18)";
+        ctx.fillStyle = active ? ACTIVE_COLOR : IDLE_COLOR;
         ctx.beginPath();
         ctx.roundRect(x, y, w, barHeight, w / 2);
         ctx.fill();
@@ -71,10 +71,7 @@ export function Waveform({ analyser, active }: WaveformProps) {
   }, [analyser, active]);
 
   return (
-    <div
-      className="h-16 w-full max-w-xs transition-opacity duration-500"
-      style={{ opacity: active ? 1 : 0.5 }}
-    >
+    <div className="h-full w-full">
       <canvas ref={canvasRef} className="h-full w-full" />
     </div>
   );
