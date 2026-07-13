@@ -39,4 +39,4 @@ The source code is fully readable on this repo. If you have concerns, please, re
 ## Branches
 
 - `master` — web app, deployed to Vercel
-- `windows-app` — Windows and Mac desktop apps
+- `desktop-app` — Windows and Mac desktop apps
