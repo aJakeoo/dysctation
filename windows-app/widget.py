@@ -2,6 +2,7 @@
 
 import math
 import queue
+import sys
 import threading
 import tkinter as tk
 from typing import Callable, Optional
@@ -102,7 +103,14 @@ class StatusWidget:
         self.root.after(POLL_MS, self._poll)
 
     def _make_non_activating(self) -> None:
-        """Prevent the widget from stealing focus or appearing in alt-tab."""
+        """Prevent the widget from stealing focus or appearing in alt-tab.
+
+        Windows-only: overrideredirect + topmost is already
+        non-activating enough on macOS.
+        """
+        if sys.platform != "win32":
+            return
+
         try:
             import ctypes
 
