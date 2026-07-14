@@ -41,6 +41,7 @@ export default function ContributePage() {
   const [itemIndex, setItemIndex] = useState(0);
   const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [submitCooldown, setSubmitCooldown] = useState(false);
 
   const isProcessing = status === "processing";
   const canBegin = consented && name.trim().length > 0 && hasFA !== null;
@@ -98,6 +99,13 @@ export default function ContributePage() {
       console.error("[contribute] handleSubmit called with no pendingBlob");
       return;
     }
+    if (submitCooldown) {
+      console.error("[contribute] handleSubmit blocked by submit cooldown");
+      return;
+    }
+    setSubmitCooldown(true);
+    setTimeout(() => setSubmitCooldown(false), 2000);
+
     console.error("[contribute] handleSubmit start", {
       size: pendingBlob.size,
       type: pendingBlob.type,
@@ -241,6 +249,7 @@ export default function ContributePage() {
             analyser={analyser}
             pendingBlob={pendingBlob}
             error={error}
+            submitCooldown={submitCooldown}
             onToggleClick={handleToggleClick}
             onSubmit={handleSubmit}
             onSkip={handleSkip}
@@ -586,6 +595,7 @@ function RecordingScreen({
   analyser,
   pendingBlob,
   error,
+  submitCooldown,
   onToggleClick,
   onSubmit,
   onSkip,
@@ -600,6 +610,7 @@ function RecordingScreen({
   analyser: AnalyserNode | null;
   pendingBlob: Blob | null;
   error: string | null;
+  submitCooldown: boolean;
   onToggleClick: () => void;
   onSubmit: () => void;
   onSkip: () => void;
@@ -654,7 +665,8 @@ function RecordingScreen({
             <button
               type="button"
               onClick={onSubmit}
-              className="rounded-full bg-mic px-7 py-3.5 text-[15px] font-extrabold text-white shadow-[0_6px_18px_rgba(79,127,199,0.35)] transition-all hover:brightness-105"
+              disabled={submitCooldown}
+              className="rounded-full bg-mic px-7 py-3.5 text-[15px] font-extrabold text-white shadow-[0_6px_18px_rgba(79,127,199,0.35)] transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:brightness-100"
             >
               Submit and next {mode === "prompts" ? "prompt" : "paragraph"}
             </button>
@@ -710,7 +722,12 @@ function FinishedScreen({
 function ContributeFooter() {
   return (
     <footer className="w-full py-6 text-center text-xs text-muted-light">
-      Your voice helps make dictation better for everyone with FA.
+      <p>Your voice helps make dictation better for everyone with FA.</p>
+      <p className="mt-2">
+        <Link href="/privacy" className="underline hover:text-muted">
+          Privacy
+        </Link>
+      </p>
     </footer>
   );
 }
