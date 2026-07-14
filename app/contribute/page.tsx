@@ -68,11 +68,21 @@ export default function ContributePage() {
     if (isProcessing) return;
     if (isRecording) {
       const blob = await stop();
-      if (blob) setPendingBlob(blob);
+      console.error("[contribute] stop() returned blob", blob && { size: blob.size, type: blob.type });
+      if (blob) {
+        setPendingBlob(blob);
+      } else {
+        console.error("[contribute] stop() returned no blob; nothing to submit");
+      }
     } else {
       setError(null);
       setPendingBlob(null);
-      await start();
+      try {
+        await start();
+      } catch (startError) {
+        console.error("[contribute] start() failed", startError);
+        throw startError;
+      }
     }
   };
 
@@ -83,19 +93,46 @@ export default function ContributePage() {
   };
 
   const handleSubmit = async () => {
-    if (!pendingBlob) return;
+    if (!pendingBlob) {
+      console.error("[contribute] handleSubmit called with no pendingBlob");
+      return;
+    }
+    console.error("[contribute] handleSubmit start", {
+      size: pendingBlob.size,
+      type: pendingBlob.type,
+    });
     setStatus("processing");
     setError(null);
 
     try {
-      const wav = await blobToWav(pendingBlob);
+      let wav: Blob;
+      try {
+        wav = await blobToWav(pendingBlob);
+      } catch (wavError) {
+        console.error("[contribute] blobToWav threw", wavError);
+        throw wavError;
+      }
+      console.error("[contribute] wav conversion complete", {
+        size: wav.size,
+        type: wav.type,
+      });
+
       const filePath = `${sanitize(name)}_${itemIndex}_${Date.now()}.wav`;
+      console.error("[contribute] uploading to storage", { filePath });
 
       const { error: uploadError } = await supabase.storage
         .from("voice-recordings")
         .upload(filePath, wav, { contentType: "audio/wav" });
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("[contribute] storage upload failed", uploadError);
+        throw uploadError;
+      }
+      console.error("[contribute] storage upload succeeded", { filePath });
 
+      console.error("[contribute] inserting voice_recordings row", {
+        prompt_index: itemIndex,
+        file_path: filePath,
+      });
       const { error: insertError } = await supabase
         .from("voice_recordings")
         .insert({
@@ -105,11 +142,16 @@ export default function ContributePage() {
           file_path: filePath,
           document_id: mode === "document" ? selectedDocument?.id ?? null : null,
         });
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error("[contribute] insert failed", insertError);
+        throw insertError;
+      }
+      console.error("[contribute] insert succeeded");
 
       setPendingBlob(null);
       advance();
-    } catch {
+    } catch (err) {
+      console.error("[contribute] handleSubmit failed", err);
       setError("Upload failed. Please try again.");
     } finally {
       setStatus("idle");
