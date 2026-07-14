@@ -61,3 +61,23 @@ for this part.
 - Verified `npx tsc --noEmit` and `next build` both succeed (including the
   new `/privacy` static route). No em dashes in any new text (checked via
   `grep`).
+
+## Guided prompts update
+
+`app/lib/prompts.ts` now has 85 total prompts, organized into categories
+(`Everyday`, `Consonant-heavy`, `FA-specific`, `Longer`, `Numbers`,
+`Clinical`):
+
+- Added the 30 Harvard Sentences into the existing `Everyday` category
+  (now 45 prompts), mixed in with the original 15 — no new category was
+  created for them.
+- Added a new `Clinical` category with 5 DDK (diadochokinetic) tasks.
+  When a Clinical prompt is shown on `/contribute`, the UI displays a note
+  beneath it: "Say this phrase rhythmically, as quickly and clearly as you
+  can." No other category shows this note.
+- On `/contribute`, starting a guided-prompts recording session now
+  shuffles all 85 prompts into a random order (Fisher-Yates), stored in
+  React state (`sessionPrompts`). Each visit/session gets a fresh order;
+  reloading the page resets it.
+- The "Read guided prompts" mode card copy was updated from "50 short
+  sentences" to "85 short sentences".

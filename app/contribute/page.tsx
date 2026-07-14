@@ -5,7 +5,7 @@ import Link from "next/link";
 import { MicButton } from "../components/MicButton";
 import { Waveform } from "../components/Waveform";
 import { useRecorder } from "../hooks/useRecorder";
-import { PROMPTS } from "../lib/prompts";
+import { CATEGORY_NOTES, PROMPTS, Prompt, shufflePrompts } from "../lib/prompts";
 import { DOCUMENTS, Document } from "../lib/documents";
 import { blobToWav } from "../lib/audioToWav";
 import { supabase } from "../lib/supabase";
@@ -37,6 +37,7 @@ export default function ContributePage() {
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(
     null
   );
+  const [sessionPrompts, setSessionPrompts] = useState<Prompt[]>(PROMPTS);
 
   const [itemIndex, setItemIndex] = useState(0);
   const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
@@ -47,11 +48,16 @@ export default function ContributePage() {
   const canBegin = consented && name.trim().length > 0 && hasFA !== null;
 
   const items = useMemo(
-    () => (mode === "prompts" ? PROMPTS : selectedDocument?.paragraphs ?? []),
-    [mode, selectedDocument]
+    () =>
+      mode === "prompts"
+        ? sessionPrompts.map((p) => ({ text: p.text, note: CATEGORY_NOTES[p.category] }))
+        : (selectedDocument?.paragraphs ?? []).map((text) => ({ text, note: undefined })),
+    [mode, sessionPrompts, selectedDocument]
   );
   const totalItems = items.length;
-  const currentText = items[itemIndex] ?? "";
+  const currentItem = items[itemIndex];
+  const currentText = currentItem?.text ?? "";
+  const currentNote = currentItem?.note;
 
   useEffect(() => {
     setError(recorderError);
@@ -171,6 +177,7 @@ export default function ContributePage() {
   const startPromptsMode = () => {
     setMode("prompts");
     setSelectedDocument(null);
+    setSessionPrompts(shufflePrompts(PROMPTS));
     setItemIndex(0);
     setScreen("recording");
   };
@@ -244,6 +251,7 @@ export default function ContributePage() {
             itemIndex={itemIndex}
             totalItems={totalItems}
             currentText={currentText}
+            currentNote={currentNote}
             isRecording={isRecording}
             isProcessing={isProcessing}
             analyser={analyser}
@@ -471,7 +479,7 @@ function ModeScreen({
       <div className="mt-8 grid w-full grid-cols-1 gap-[18px] sm:grid-cols-2">
         <ModeCard
           title="Read guided prompts"
-          subtitle="50 short sentences designed to capture a range of sounds and vocabulary. Best for first-time contributors."
+          subtitle="85 short sentences designed to capture a range of sounds and vocabulary. Best for first-time contributors."
           badge="Recommended"
           icon={
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -590,6 +598,7 @@ function RecordingScreen({
   itemIndex,
   totalItems,
   currentText,
+  currentNote,
   isRecording,
   isProcessing,
   analyser,
@@ -605,6 +614,7 @@ function RecordingScreen({
   itemIndex: number;
   totalItems: number;
   currentText: string;
+  currentNote?: string;
   isRecording: boolean;
   isProcessing: boolean;
   analyser: AnalyserNode | null;
@@ -641,6 +651,12 @@ function RecordingScreen({
           {currentText}
         </p>
       </div>
+
+      {currentNote && (
+        <p className="mt-3 max-w-sm text-center text-[13px] italic leading-relaxed text-muted">
+          {currentNote}
+        </p>
+      )}
 
       <div className="mt-4 flex flex-col items-center gap-6">
         <Waveform analyser={analyser} active={isRecording} />

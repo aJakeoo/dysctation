@@ -180,7 +180,7 @@ export default function Home() {
 
       <a
         href="https://dysctation.vercel.app/contribute"
-        className="absolute right-5 top-5 z-10 inline-flex items-center gap-2 rounded-full border border-mic/25 bg-mic/10 px-4 py-2.5 text-[13.5px] font-extrabold text-mic transition-colors hover:bg-mic/[0.18] sm:right-7 sm:top-7"
+        className="absolute right-5 top-5 z-20 inline-flex items-center gap-2 rounded-full border border-mic/25 bg-mic/10 px-4 py-2.5 text-[13.5px] font-extrabold text-mic transition-colors hover:bg-mic/[0.18] sm:right-7 sm:top-7"
       >
         Contribute your voice
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
