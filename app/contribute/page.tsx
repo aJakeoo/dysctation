@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { MicButton } from "../components/MicButton";
 import { Waveform } from "../components/Waveform";
@@ -30,6 +30,7 @@ export default function ContributePage() {
 
   const [consented, setConsented] = useState(false);
   const [name, setName] = useState("");
+  const [hasFA, setHasFA] = useState<boolean | null>(null);
   const [screen, setScreen] = useState<Screen>("gate");
   const [mode, setMode] = useState<Mode>("prompts");
   const [search, setSearch] = useState("");
@@ -42,7 +43,7 @@ export default function ContributePage() {
   const [error, setError] = useState<string | null>(null);
 
   const isProcessing = status === "processing";
-  const canBegin = consented && name.trim().length > 0;
+  const canBegin = consented && name.trim().length > 0 && hasFA !== null;
 
   const items = useMemo(
     () => (mode === "prompts" ? PROMPTS : selectedDocument?.paragraphs ?? []),
@@ -68,11 +69,21 @@ export default function ContributePage() {
     if (isProcessing) return;
     if (isRecording) {
       const blob = await stop();
-      if (blob) setPendingBlob(blob);
+      console.error("[contribute] stop() returned blob", blob && { size: blob.size, type: blob.type });
+      if (blob) {
+        setPendingBlob(blob);
+      } else {
+        console.error("[contribute] stop() returned no blob; nothing to submit");
+      }
     } else {
       setError(null);
       setPendingBlob(null);
-      await start();
+      try {
+        await start();
+      } catch (startError) {
+        console.error("[contribute] start() failed", startError);
+        throw startError;
+      }
     }
   };
 
@@ -83,19 +94,46 @@ export default function ContributePage() {
   };
 
   const handleSubmit = async () => {
-    if (!pendingBlob) return;
+    if (!pendingBlob) {
+      console.error("[contribute] handleSubmit called with no pendingBlob");
+      return;
+    }
+    console.error("[contribute] handleSubmit start", {
+      size: pendingBlob.size,
+      type: pendingBlob.type,
+    });
     setStatus("processing");
     setError(null);
 
     try {
-      const wav = await blobToWav(pendingBlob);
+      let wav: Blob;
+      try {
+        wav = await blobToWav(pendingBlob);
+      } catch (wavError) {
+        console.error("[contribute] blobToWav threw", wavError);
+        throw wavError;
+      }
+      console.error("[contribute] wav conversion complete", {
+        size: wav.size,
+        type: wav.type,
+      });
+
       const filePath = `${sanitize(name)}_${itemIndex}_${Date.now()}.wav`;
+      console.error("[contribute] uploading to storage", { filePath });
 
       const { error: uploadError } = await supabase.storage
         .from("voice-recordings")
         .upload(filePath, wav, { contentType: "audio/wav" });
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("[contribute] storage upload failed", uploadError);
+        throw uploadError;
+      }
+      console.error("[contribute] storage upload succeeded", { filePath });
 
+      console.error("[contribute] inserting voice_recordings row", {
+        prompt_index: itemIndex,
+        file_path: filePath,
+      });
       const { error: insertError } = await supabase
         .from("voice_recordings")
         .insert({
@@ -104,12 +142,18 @@ export default function ContributePage() {
           prompt_text: currentText,
           file_path: filePath,
           document_id: mode === "document" ? selectedDocument?.id ?? null : null,
+          has_fa: hasFA,
         });
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error("[contribute] insert failed", insertError);
+        throw insertError;
+      }
+      console.error("[contribute] insert succeeded");
 
       setPendingBlob(null);
       advance();
-    } catch {
+    } catch (err) {
+      console.error("[contribute] handleSubmit failed", err);
       setError("Upload failed. Please try again.");
     } finally {
       setStatus("idle");
@@ -148,7 +192,7 @@ export default function ContributePage() {
   }, [search]);
 
   const mainWidthClass =
-    screen === "documentPicker" ? "max-w-2xl" : "max-w-md";
+    screen === "documentPicker" || screen === "mode" ? "max-w-2xl" : "max-w-md";
 
   return (
     <div className="bg-wireframe flex flex-1 flex-col items-center px-6">
@@ -161,6 +205,8 @@ export default function ContributePage() {
             setConsented={setConsented}
             name={name}
             setName={setName}
+            hasFA={hasFA}
+            setHasFA={setHasFA}
             canBegin={canBegin}
             onContinue={() => setScreen("mode")}
           />
@@ -219,6 +265,8 @@ function GateScreen({
   setConsented,
   name,
   setName,
+  hasFA,
+  setHasFA,
   canBegin,
   onContinue,
 }: {
@@ -226,6 +274,8 @@ function GateScreen({
   setConsented: (v: boolean) => void;
   name: string;
   setName: (v: string) => void;
+  hasFA: boolean | null;
+  setHasFA: (v: boolean) => void;
   canBegin: boolean;
   onContinue: () => void;
 }) {
@@ -239,50 +289,96 @@ function GateScreen({
         yours.
       </p>
 
-      <div className="mt-8 rounded-2xl border border-border bg-card p-4 text-sm leading-relaxed text-foreground shadow-sm">
-        By recording yourself here, you agree that your voice recordings
-        will be used to train AI speech recognition models to better
-        transcribe the voices of people with Friedreich&apos;s Ataxia.
-        Recordings are stored securely and never shared publicly. You can
-        request deletion at any time by emailing{" "}
-        <a
-          href="mailto:jakejuip@gmail.com"
-          className="font-semibold underline"
-        >
-          jakejuip@gmail.com
-        </a>
-        .
-      </div>
-
-      <label className="mt-4 flex items-start gap-3 text-sm text-foreground">
-        <input
-          type="checkbox"
-          checked={consented}
-          onChange={(e) => setConsented(e.target.checked)}
-          className="mt-0.5 h-4 w-4 accent-mic"
-        />
-        I have read and agree to the above.
-      </label>
-
-      <div className="mt-6">
-        <label className="mb-1 block text-sm text-muted">
-          First name or nickname
+      <div className="mt-8 rounded-2xl border border-border bg-card p-8 shadow-sm">
+        <label className="flex items-start gap-3.5 text-[15px] leading-relaxed text-ink-soft">
+          <input
+            type="checkbox"
+            checked={consented}
+            onChange={(e) => setConsented(e.target.checked)}
+            className="mt-1 h-[18px] w-[18px] flex-shrink-0 accent-mic"
+          />
+          By recording yourself here, you agree that your voice recordings
+          will be used to train AI speech recognition models to better
+          transcribe the voices of people with Friedreich&apos;s Ataxia.
+          Recordings are stored securely and never shared publicly. You can
+          request deletion at any time by emailing{" "}
+          <a
+            href="mailto:jakejuip@gmail.com"
+            className="font-semibold text-foreground underline"
+          >
+            jakejuip@gmail.com
+          </a>
+          .
         </label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          disabled={!consented}
-          placeholder="e.g. Jordan"
-          className="w-full rounded-xl border border-border bg-card px-4 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent-soft disabled:opacity-50"
-        />
+
+        <div className="mt-6">
+          <label className="mb-2 block text-sm font-bold text-foreground">
+            First name or nickname
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={!consented}
+            placeholder="e.g. Jordan"
+            className="w-full rounded-xl border-[1.5px] border-border bg-white px-4 py-3.5 text-base text-foreground outline-none focus:border-mic disabled:opacity-50"
+          />
+        </div>
+
+        <fieldset className="mt-6">
+          <legend className="mb-2 block text-sm font-bold text-foreground">
+            Do you have Friedreich&apos;s Ataxia?
+          </legend>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <label
+              className={`flex flex-1 cursor-pointer items-center gap-2.5 rounded-xl border-[1.5px] px-4 py-3.5 transition-colors ${
+                hasFA === true
+                  ? "border-mic bg-accent-soft"
+                  : "border-border hover:border-mic"
+              }`}
+            >
+              <input
+                type="radio"
+                name="has-fa"
+                checked={hasFA === true}
+                onChange={() => setHasFA(true)}
+                className="h-[18px] w-[18px] flex-shrink-0 accent-mic"
+              />
+              <span className="text-[15px] font-bold text-foreground">
+                Yes, I have FA
+              </span>
+            </label>
+            <label
+              className={`flex flex-1 cursor-pointer items-center gap-2.5 rounded-xl border-[1.5px] px-4 py-3.5 transition-colors ${
+                hasFA === false
+                  ? "border-mic bg-accent-soft"
+                  : "border-border hover:border-mic"
+              }`}
+            >
+              <input
+                type="radio"
+                name="has-fa"
+                checked={hasFA === false}
+                onChange={() => setHasFA(false)}
+                className="h-[18px] w-[18px] flex-shrink-0 accent-mic"
+              />
+              <span className="text-[15px] font-bold text-foreground">
+                No, I don&apos;t have FA
+              </span>
+            </label>
+          </div>
+          <p className="mt-2.5 text-[13px] leading-relaxed text-muted">
+            Both FA and non-FA voices are valuable for training. Non-FA
+            voices help the model understand the difference.
+          </p>
+        </fieldset>
       </div>
 
       <button
         type="button"
         disabled={!canBegin}
         onClick={onContinue}
-        className="mt-8 rounded-full bg-mic px-6 py-3 text-sm font-semibold text-white transition-colors hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40"
+        className="mt-8 self-start rounded-full bg-mic px-7 py-3.5 text-[15px] font-extrabold text-white shadow-[0_6px_18px_rgba(79,127,199,0.35)] transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
       >
         Continue
       </button>
@@ -294,12 +390,14 @@ function ModeCard({
   title,
   subtitle,
   badge,
+  icon,
   selected,
   onClick,
 }: {
   title: string;
   subtitle: string;
   badge: string;
+  icon: ReactNode;
   selected: boolean;
   onClick: () => void;
 }) {
@@ -307,23 +405,38 @@ function ModeCard({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full rounded-2xl border p-4 text-left shadow-sm transition-colors ${
+      className={`relative w-full rounded-2xl border-2 p-6 text-left transition-all hover:-translate-y-0.5 ${
         selected
-          ? "border-2 border-mic bg-card"
-          : "border border-border bg-card hover:bg-accent-soft/40"
+          ? "border-mic bg-gradient-to-b from-accent-soft to-card to-60% shadow-[0_8px_24px_rgba(79,127,199,0.18)]"
+          : "border-border bg-card shadow-sm hover:shadow-md"
       }`}
     >
-      <div className="flex items-center gap-2">
-        <span className="font-semibold text-foreground">{title}</span>
-        <span
-          className={`rounded-full px-2 py-0.5 text-xs font-semibold text-white ${
-            badge === "Recommended" ? "bg-mic" : "bg-accent"
-          }`}
-        >
-          {badge}
-        </span>
+      <span
+        className={`absolute right-[18px] top-[18px] rounded-full px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide ${
+          selected ? "bg-mic text-white" : "bg-accent-soft text-muted"
+        }`}
+      >
+        {badge}
+      </span>
+
+      <div
+        className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl ${
+          selected ? "bg-mic text-white" : "bg-accent-soft text-muted"
+        }`}
+      >
+        {icon}
       </div>
-      <p className="mt-1 text-sm text-muted">{subtitle}</p>
+
+      <h3 className="mb-2 text-lg font-extrabold text-foreground">{title}</h3>
+      <p className="text-sm leading-relaxed text-ink-soft">{subtitle}</p>
+
+      <span
+        className={`absolute bottom-5 right-5 h-[22px] w-[22px] rounded-full border-2 ${
+          selected
+            ? "border-mic bg-mic shadow-[inset_0_0_0_4px_#fff]"
+            : "border-border bg-white"
+        }`}
+      />
     </button>
   );
 }
@@ -346,18 +459,32 @@ function ModeScreen({
         Pick whichever feels more natural to read out loud.
       </p>
 
-      <div className="mt-8 flex flex-col gap-4">
+      <div className="mt-8 grid w-full grid-cols-1 gap-[18px] sm:grid-cols-2">
         <ModeCard
           title="Read guided prompts"
-          subtitle="50 short sentences designed to capture a range of sounds and vocabulary."
+          subtitle="50 short sentences designed to capture a range of sounds and vocabulary. Best for first-time contributors."
           badge="Recommended"
+          icon={
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="9" y="2.5" width="6" height="12" rx="3" strokeWidth={2} />
+              <path d="M5.5 11a6.5 6.5 0 0 0 13 0" strokeWidth={2} strokeLinecap="round" fill="none" />
+            </svg>
+          }
           selected={mode === "prompts"}
           onClick={() => setMode("prompts")}
         />
         <ModeCard
           title="Read a document"
-          subtitle="Choose a famous speech or public domain text and read naturally."
+          subtitle="Choose a famous speech or public domain text and read naturally. Great for longer sessions."
           badge="New"
+          icon={
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="5" y="3" width="14" height="18" rx="2" strokeWidth={2} />
+              <line x1="8.5" y1="8" x2="15.5" y2="8" strokeWidth={1.6} strokeLinecap="round" />
+              <line x1="8.5" y1="12" x2="15.5" y2="12" strokeWidth={1.6} strokeLinecap="round" />
+              <line x1="8.5" y1="16" x2="12.5" y2="16" strokeWidth={1.6} strokeLinecap="round" />
+            </svg>
+          }
           selected={mode === "document"}
           onClick={() => setMode("document")}
         />
@@ -366,9 +493,9 @@ function ModeScreen({
       <button
         type="button"
         onClick={onContinue}
-        className="mt-8 rounded-full bg-mic px-6 py-3 text-sm font-semibold text-white transition-colors hover:brightness-105"
+        className="mt-8 self-start rounded-full bg-mic px-7 py-3.5 text-[15px] font-extrabold text-white shadow-[0_6px_18px_rgba(79,127,199,0.35)] transition-all hover:brightness-105"
       >
-        Continue
+        Start recording
       </button>
     </div>
   );
@@ -394,29 +521,47 @@ function DocumentPickerScreen({
         Search by title or author, then select one to start reading.
       </p>
 
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search by title or author"
-        className="mt-6 w-full rounded-xl border border-border bg-card px-4 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent-soft"
-      />
+      <div className="relative mt-6">
+        <svg
+          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#8a8378"
+          strokeWidth={2}
+        >
+          <circle cx="11" cy="11" r="7" />
+          <line x1="16.5" y1="16.5" x2="21" y2="21" />
+        </svg>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by title or author"
+          className="w-full rounded-xl border-[1.5px] border-border bg-white py-3.5 pl-11 pr-4 text-[15px] text-foreground outline-none focus:border-mic"
+        />
+      </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="mt-[22px] grid grid-cols-1 gap-4 sm:grid-cols-2">
         {documents.map((doc) => (
           <div
             key={doc.id}
-            className="flex flex-col rounded-2xl border border-border bg-card p-4 shadow-sm"
+            className="flex flex-col gap-2.5 rounded-2xl border-[1.5px] border-border bg-card p-5"
           >
-            <span className="font-semibold text-foreground">{doc.title}</span>
-            <span className="mt-1 text-xs text-muted">
-              {doc.author}, {doc.year}
+            <h4 className="text-base font-extrabold text-foreground">
+              {doc.title}
+            </h4>
+            <span className="text-[12.5px] font-bold uppercase tracking-wide text-muted">
+              {doc.author} &middot; {doc.year}
             </span>
-            <p className="mt-2 flex-1 text-sm text-muted">{doc.excerpt}</p>
+            <p className="flex-1 border-l-[3px] border-border pl-2.5 text-[13.5px] italic leading-relaxed text-ink-soft">
+              {doc.excerpt}
+            </p>
             <button
               type="button"
               onClick={() => onSelect(doc)}
-              className="mt-4 self-start rounded-full bg-mic px-4 py-2 text-xs font-semibold text-white transition-colors hover:brightness-105"
+              className="mt-1 self-start rounded-full bg-accent-soft px-[18px] py-2 text-[13.5px] font-extrabold text-foreground transition-colors hover:bg-mic hover:text-white"
             >
               Select
             </button>
@@ -459,22 +604,34 @@ function RecordingScreen({
   onSubmit: () => void;
   onSkip: () => void;
 }) {
-  const unit = mode === "prompts" ? "Prompt" : "Paragraph";
+  const docTitle =
+    mode === "document" && selectedDocument ? selectedDocument.title : "Guided prompts";
+  const progressPct = totalItems > 0 ? Math.round(((itemIndex + 1) / totalItems) * 100) : 0;
 
   return (
     <div className="flex w-full flex-col items-center">
-      {mode === "document" && selectedDocument && (
-        <p className="text-sm text-muted">{selectedDocument.title}</p>
-      )}
-      <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted">
-        {unit} {itemIndex + 1} of {totalItems}
+      <div className="flex w-full max-w-sm items-center gap-3">
+        <div className="h-[7px] flex-1 overflow-hidden rounded-full bg-accent-soft">
+          <div
+            className="h-full rounded-full bg-mic transition-[width] duration-300"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+        <span className="whitespace-nowrap text-[13px] font-extrabold text-muted">
+          {itemIndex + 1} / {totalItems}
+        </span>
+      </div>
+      <p className="mt-2.5 text-[13px] font-extrabold uppercase tracking-wide text-muted">
+        {docTitle}
       </p>
 
-      <p className="mt-6 max-w-sm text-center text-xl font-semibold leading-snug text-foreground sm:text-2xl">
-        {currentText}
-      </p>
+      <div className="mt-6 flex min-h-[180px] w-full max-w-sm items-center justify-center rounded-2xl border-[1.5px] border-border bg-card px-10 py-12 text-center">
+        <p className="text-xl font-bold leading-snug text-foreground sm:text-2xl">
+          {currentText}
+        </p>
+      </div>
 
-      <div className="mt-12 flex flex-col items-center gap-6">
+      <div className="mt-4 flex flex-col items-center gap-6">
         <Waveform analyser={analyser} active={isRecording} />
 
         <MicButton
@@ -497,7 +654,7 @@ function RecordingScreen({
             <button
               type="button"
               onClick={onSubmit}
-              className="rounded-full bg-mic px-6 py-3 text-sm font-semibold text-white transition-colors hover:brightness-105"
+              className="rounded-full bg-mic px-7 py-3.5 text-[15px] font-extrabold text-white shadow-[0_6px_18px_rgba(79,127,199,0.35)] transition-all hover:brightness-105"
             >
               Submit and next {mode === "prompts" ? "prompt" : "paragraph"}
             </button>
@@ -506,7 +663,7 @@ function RecordingScreen({
             <button
               type="button"
               onClick={onSkip}
-              className="rounded-full px-6 py-3 text-sm font-semibold text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
+              className="rounded-full bg-accent-soft px-7 py-3.5 text-[15px] font-extrabold text-foreground transition-colors hover:bg-border"
             >
               Skip
             </button>

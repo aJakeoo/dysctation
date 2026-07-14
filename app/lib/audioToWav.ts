@@ -33,13 +33,37 @@ function encodeWav(samples: Float32Array, sampleRate: number): Blob {
 }
 
 export async function blobToWav(blob: Blob): Promise<Blob> {
+  console.error("[audioToWav] input blob", { size: blob.size, type: blob.type });
+
   const arrayBuffer = await blob.arrayBuffer();
+  console.error("[audioToWav] arrayBuffer byteLength", arrayBuffer.byteLength);
+
   const audioContext = new AudioContext();
   try {
-    const decoded = await audioContext.decodeAudioData(arrayBuffer);
+    let decoded;
+    try {
+      decoded = await audioContext.decodeAudioData(arrayBuffer);
+    } catch (decodeError) {
+      console.error("[audioToWav] decodeAudioData failed", decodeError);
+      throw decodeError;
+    }
+    console.error("[audioToWav] decoded", {
+      sampleRate: decoded.sampleRate,
+      numberOfChannels: decoded.numberOfChannels,
+      length: decoded.length,
+      duration: decoded.duration,
+    });
+
     const samples = decoded.getChannelData(0);
-    return encodeWav(samples, decoded.sampleRate);
+    const wav = encodeWav(samples, decoded.sampleRate);
+    console.error("[audioToWav] encoded wav blob", { size: wav.size, type: wav.type });
+    return wav;
+  } catch (err) {
+    console.error("[audioToWav] blobToWav failed", err);
+    throw err;
   } finally {
-    await audioContext.close().catch(() => {});
+    await audioContext.close().catch((closeErr) => {
+      console.error("[audioToWav] audioContext.close failed", closeErr);
+    });
   }
 }
