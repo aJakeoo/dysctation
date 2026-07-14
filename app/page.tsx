@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { MicButton } from "./components/MicButton";
 import { ModeToggle } from "./components/ModeToggle";
 import { Waveform } from "./components/Waveform";
@@ -179,8 +178,8 @@ export default function Home() {
     <div className="relative flex flex-1 flex-col overflow-hidden">
       <BackgroundTexture />
 
-      <Link
-        href="/contribute"
+      <a
+        href="https://dysctation.vercel.app/contribute"
         className="absolute right-5 top-5 z-10 inline-flex items-center gap-2 rounded-full border border-mic/25 bg-mic/10 px-4 py-2.5 text-[13.5px] font-extrabold text-mic transition-colors hover:bg-mic/[0.18] sm:right-7 sm:top-7"
       >
         Contribute your voice
@@ -193,7 +192,7 @@ export default function Home() {
             strokeLinejoin="round"
           />
         </svg>
-      </Link>
+      </a>
 
       <div className="relative z-10 flex flex-1 flex-col items-center px-6">
         <main className="flex w-full max-w-md flex-1 flex-col items-center pt-16 sm:pt-24">
@@ -228,6 +227,7 @@ export default function Home() {
               onPressStart={handlePressStart}
               onPressEnd={handlePressEnd}
               onClick={handleToggleClick}
+              activeVariant="grey"
             />
 
             <ModeToggle
