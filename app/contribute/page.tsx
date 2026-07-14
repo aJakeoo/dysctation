@@ -30,6 +30,7 @@ export default function ContributePage() {
 
   const [consented, setConsented] = useState(false);
   const [name, setName] = useState("");
+  const [hasFA, setHasFA] = useState<boolean | null>(null);
   const [screen, setScreen] = useState<Screen>("gate");
   const [mode, setMode] = useState<Mode>("prompts");
   const [search, setSearch] = useState("");
@@ -42,7 +43,7 @@ export default function ContributePage() {
   const [error, setError] = useState<string | null>(null);
 
   const isProcessing = status === "processing";
-  const canBegin = consented && name.trim().length > 0;
+  const canBegin = consented && name.trim().length > 0 && hasFA !== null;
 
   const items = useMemo(
     () => (mode === "prompts" ? PROMPTS : selectedDocument?.paragraphs ?? []),
@@ -141,6 +142,7 @@ export default function ContributePage() {
           prompt_text: currentText,
           file_path: filePath,
           document_id: mode === "document" ? selectedDocument?.id ?? null : null,
+          has_fa: hasFA,
         });
       if (insertError) {
         console.error("[contribute] insert failed", insertError);
@@ -203,6 +205,8 @@ export default function ContributePage() {
             setConsented={setConsented}
             name={name}
             setName={setName}
+            hasFA={hasFA}
+            setHasFA={setHasFA}
             canBegin={canBegin}
             onContinue={() => setScreen("mode")}
           />
@@ -261,6 +265,8 @@ function GateScreen({
   setConsented,
   name,
   setName,
+  hasFA,
+  setHasFA,
   canBegin,
   onContinue,
 }: {
@@ -268,6 +274,8 @@ function GateScreen({
   setConsented: (v: boolean) => void;
   name: string;
   setName: (v: string) => void;
+  hasFA: boolean | null;
+  setHasFA: (v: boolean) => void;
   canBegin: boolean;
   onContinue: () => void;
 }) {
@@ -319,6 +327,38 @@ function GateScreen({
           className="w-full rounded-xl border border-border bg-card px-4 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent-soft disabled:opacity-50"
         />
       </div>
+
+      <fieldset className="mt-6">
+        <legend className="mb-1 block text-sm text-muted">
+          Do you have Friedreich&apos;s Ataxia?
+        </legend>
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-2 text-sm text-foreground">
+            <input
+              type="radio"
+              name="has-fa"
+              checked={hasFA === true}
+              onChange={() => setHasFA(true)}
+              className="h-4 w-4 accent-mic"
+            />
+            Yes, I have FA
+          </label>
+          <label className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-2 text-sm text-foreground">
+            <input
+              type="radio"
+              name="has-fa"
+              checked={hasFA === false}
+              onChange={() => setHasFA(false)}
+              className="h-4 w-4 accent-mic"
+            />
+            No, I don&apos;t have FA
+          </label>
+        </div>
+        <p className="mt-2 text-xs text-muted-light">
+          Both FA and non-FA voices are valuable for training. Non-FA voices
+          help the model understand the difference.
+        </p>
+      </fieldset>
 
       <button
         type="button"
