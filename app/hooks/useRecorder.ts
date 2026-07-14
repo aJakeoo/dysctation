@@ -70,6 +70,7 @@ export function useRecorder() {
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType });
         chunksRef.current = [];
         cleanup();
+        setStatus("idle");
         resolve(blob.size > 0 ? blob : null);
       };
       recorder.stop();
