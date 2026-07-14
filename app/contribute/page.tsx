@@ -484,6 +484,7 @@ function RecordingScreen({
           onPressStart={() => {}}
           onPressEnd={() => {}}
           onClick={onToggleClick}
+          activeVariant="grey"
         />
 
         <div className="h-5 text-sm">

@@ -7,6 +7,7 @@ interface MicButtonProps {
   onPressEnd: () => void;
   onClick: () => void;
   holdMode: boolean;
+  activeVariant?: "blue" | "grey";
 }
 
 export function MicButton({
@@ -16,6 +17,7 @@ export function MicButton({
   onPressEnd,
   onClick,
   holdMode,
+  activeVariant = "blue",
 }: MicButtonProps) {
   const handlers = holdMode
     ? {
@@ -42,12 +44,17 @@ export function MicButton({
       aria-pressed={active}
       aria-label={active ? "Stop recording" : "Start recording"}
       {...handlers}
-      className={`relative flex h-36 w-36 select-none items-center justify-center rounded-full bg-mic shadow-[0_10px_32px_rgba(79,127,199,0.38)] transition-all duration-200 ease-out focus:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft disabled:opacity-50 sm:h-44 sm:w-44 ${
-        active
-          ? "scale-105 brightness-95"
-          : "hover:brightness-105 active:scale-95"
+      className={`relative flex h-36 w-36 select-none items-center justify-center rounded-full transition-all duration-200 ease-out focus:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft disabled:opacity-50 sm:h-44 sm:w-44 ${
+        active && activeVariant === "grey"
+          ? "scale-105 bg-muted-light shadow-md grayscale"
+          : active
+            ? "scale-105 bg-mic shadow-[0_10px_32px_rgba(79,127,199,0.38)] brightness-95"
+            : "bg-mic shadow-[0_10px_32px_rgba(79,127,199,0.38)] hover:brightness-105 active:scale-95"
       }`}
     >
+      {active && activeVariant === "grey" && (
+        <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-muted-light/60" />
+      )}
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
